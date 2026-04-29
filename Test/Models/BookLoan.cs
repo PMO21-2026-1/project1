@@ -10,5 +10,13 @@ namespace Test.Models {
         public Book? Book { get; set; }
         public int LoanId { get; set; }
         public Loan? Loan { get; set; }
+
+        public BookLoan() { }
+
+        public BookLoan(int bookId, int loanId)
+        {
+            BookId = bookId;
+            LoanId = loanId;
+        }
     }
 }
