@@ -10,5 +10,13 @@ namespace Test.Models {
         public Book? Book { get; set; }
         public int GenreId { get; set; }
         public Genre? Genre { get; set; }
+
+        public BookGenre() { }
+
+        public BookGenre(int bookId, int genreId)
+        {
+            BookId = bookId;
+            GenreId = genreId;
+        }
     }
 }
