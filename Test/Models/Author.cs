@@ -79,7 +79,7 @@ namespace Test.Models {
                 else {
                     var other = book.BookAuthors.FirstOrDefault(ba =>
                         ReferenceEquals(ba.Author, this) ||
-                        (ba.Author != null && this.Id != 0 && ba.Author.Id == this.Id)
+                        (ba.Author != null  && this.Id != 0 && ba.Author.Id == this.Id)
                     );
                     if (other != null) book.BookAuthors.Remove(other);
                 }
