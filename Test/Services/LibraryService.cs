@@ -5,11 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using Test.Models;
 
-namespace Test.Services
-{
-    public class LibraryService
-    {
+namespace Test.Services {
+    public class LibraryService {
         private readonly Library _library;
+       
 
         public LibraryService(Library library)
         {
@@ -34,7 +33,7 @@ namespace Test.Services
 
             if (alreadyExists)
                 throw new InvalidOperationException("Книга з таким ISBN вже існує.");
-
+            _conte
             _library.Books.Add(book);
         }
 
