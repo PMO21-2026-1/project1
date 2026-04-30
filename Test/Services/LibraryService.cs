@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Library.Services {
-    internal class DBContext {
+    internal class DBContext : DbContext {
+
     }
 }
