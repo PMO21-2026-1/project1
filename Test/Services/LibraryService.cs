@@ -4,166 +4,140 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Test.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Test.Services {
-    public class LibraryService {
-        private readonly Library _library;
-       
+    internal class LibraryService {
 
-        public LibraryService(Library library)
+        private readonly DBContext _context;
+
+        public LibraryService(DBContext context)
         {
-            _library = library;
+            _context = context;
         }
 
-        public void AddBook(Book book)
-        {
-            if (book == null)
-                throw new ArgumentNullException(nameof(book));
+        public void AddBook(Book book) {
+            if (book == null) throw new ArgumentNullException(nameof(book));
 
-            if (string.IsNullOrWhiteSpace(book.Title))
-                throw new ArgumentException("Назва книги не може бути порожньою.");
+            // Перевірка бізнес-правил
+            if (string.IsNullOrWhiteSpace(book.Title)) throw new ArgumentException("Назва не може бути порожньою.");
+            if (string.IsNullOrWhiteSpace(book.ISBN)) throw new ArgumentException("ISBN не може бути порожнім.");
 
-            if (string.IsNullOrWhiteSpace(book.ISBN))
-                throw new ArgumentException("ISBN не може бути порожнім.");
-
-            if (book.BooksCount < 0)
-                throw new ArgumentException("Кількість книг не може бути від'ємною.");
-
-            bool alreadyExists = _library.Books.Any(b => b.ISBN == book.ISBN);
-
-            if (alreadyExists)
+            // Перевірка на дублікат у базі
+            if (_context.Books.Any(b => b.ISBN == book.ISBN))
                 throw new InvalidOperationException("Книга з таким ISBN вже існує.");
-            _conte
-            _library.Books.Add(book);
+
+            _context.Books.Add(book);
+            _context.SaveChanges();
         }
 
-        public void RemoveBook(string isbn)
-        {
-            var book = _library.Books.FirstOrDefault(b => b.ISBN == isbn);
+        public List<Book> SearchByTitle(string title) {
+            if (string.IsNullOrWhiteSpace(title)) return new List<Book>();
 
-            if (book == null)
-                throw new InvalidOperationException("Книгу з таким ISBN не знайдено.");
-
-            _library.Books.Remove(book);
-        }
-
-        public List<Book> SearchByTitle(string title)
-        {
-            if (string.IsNullOrWhiteSpace(title))
-                return new List<Book>();
-
-            return _library.Books
-                .Where(b => b.Title.Contains(title, StringComparison.OrdinalIgnoreCase))
+            return _context.Books
+                .AsNoTracking() // Тільки для читання
+                .AsSplitQuery()
+                .Include(b => b.BookAuthors).ThenInclude(ba => ba.Author)
+                .Where(b => b.Title.Contains(title)) // SQL сам ігнорує регістр (зазвичай)
                 .ToList();
         }
 
-        public List<Book> SearchByAuthor(string authorName)
-        {
-            if (string.IsNullOrWhiteSpace(authorName))
-                return new List<Book>();
+        // --- РОБОТА З ЧИТАЧАМИ ---
 
-            return _library.Books
-                .Where(b => b.BookAuthors.Any(ba =>
-                    ba.Author != null &&
-                    ba.Author.FullName.Contains(authorName, StringComparison.OrdinalIgnoreCase)))
-                .ToList();
-        }
+        public void RegisterReader(Reader reader) {
+            if (reader == null) throw new ArgumentNullException(nameof(reader));
 
-        public void RegisterReader(Reader reader)
-        {
-            if (reader == null)
-                throw new ArgumentNullException(nameof(reader));
-
-            if (string.IsNullOrWhiteSpace(reader.FullName))
-                throw new ArgumentException("Ім'я читача не може бути порожнім.");
-
-            if (string.IsNullOrWhiteSpace(reader.CardNumber))
-                throw new ArgumentException("Номер читацького квитка не може бути порожнім.");
-
-            bool cardExists = _library.Readers.Any(r => r.CardNumber == reader.CardNumber);
-
-            if (cardExists)
+            if (_context.Readers.Any(r => r.CardNumber == reader.CardNumber))
                 throw new InvalidOperationException("Читач з таким номером картки вже існує.");
 
-            _library.Readers.Add(reader);
+            _context.Readers.Add(reader);
+            _context.SaveChanges();
         }
 
-        public Loan IssueBook(int readerId, string isbn)
-        {
-            var reader = _library.Readers.FirstOrDefault(r => r.Id == readerId);
+        // --- ВИДАЧА ТА ПОВЕРНЕННЯ (Найважливіша логіка) ---
 
-            if (reader == null)
-                throw new InvalidOperationException("Читача не знайдено.");
+        public Loan IssueBook(int readerId, string isbn) {
+            // 1. Шукаємо читача
+            var reader = _context.Readers.Find(readerId);
+            if (reader == null) throw new InvalidOperationException("Читача не знайдено.");
 
-            var book = _library.Books.FirstOrDefault(b => b.ISBN == isbn);
-
-            if (book == null)
-                throw new InvalidOperationException("Книгу не знайдено.");
+            // 2. Шукаємо книгу (завантажуємо її, бо будемо міняти статус)
+            var book = _context.Books.FirstOrDefault(b => b.ISBN == isbn);
+            if (book == null) throw new InvalidOperationException("Книгу не знайдено.");
 
             if (!book.IsAvailableForLoan())
                 throw new InvalidOperationException("Книга недоступна для видачі.");
 
+            // 3. Логіка моделі: зменшуємо кількість, міняємо статус
             book.MarkAsBorrowed();
 
-            var loan = new Loan
-            {
-                Id = _library.Loans.Count + 1,
+            // 4. Створюємо запис видачі
+            var loan = new Loan {
                 ReaderId = reader.Id,
-                Reader = reader,
                 IssueDate = DateTime.Now,
                 PlannedReturnDate = DateTime.Now.AddDays(14),
                 ExpirationDate = DateTime.Now.AddDays(14),
                 LoanStatus = LoanStatus.Active
             };
 
-            loan.BookLoans.Add(new BookLoan
-            {
+            // Зв'язуємо книгу з видачею через проміжну таблицю
+            loan.BookLoans.Add(new BookLoan {
                 Book = book,
-                Loan = loan,
-                LoanId = loan.Id
+                Loan = loan
             });
 
-            _library.Loans.Add(loan);
+            _context.Loans.Add(loan);
+            _context.SaveChanges(); // Зберігаємо все одним махом (транзакція)
 
             return loan;
         }
 
-        public void ReturnBook(int loanId)
-        {
-            var loan = _library.Loans.FirstOrDefault(l => l.Id == loanId);
+        public void ReturnBook(int loanId) {
+            // Завантажуємо видачу разом із книгами
+            var loan = _context.Loans
+                .Include(l => l.BookLoans)
+                    .ThenInclude(bl => bl.Book)
+                .FirstOrDefault(l => l.Id == loanId);
 
-            if (loan == null)
-                throw new InvalidOperationException("Запис видачі не знайдено.");
+            if (loan == null) throw new InvalidOperationException("Запис видачі не знайдено.");
+            if (loan.LoanStatus == LoanStatus.Returned) throw new InvalidOperationException("Вже повернуто.");
 
-            if (loan.LoanStatus == LoanStatus.Returned)
-                throw new InvalidOperationException("Цю книгу вже повернули.");
-
-            foreach (var bookLoan in loan.BookLoans)
-            {
-                if (bookLoan.Book != null)
-                {
-                    bookLoan.Book.MarkAsReturned();
-                }
+            // Повертаємо всі книги у цій видачі
+            foreach (var bookLoan in loan.BookLoans) {
+                bookLoan.Book?.MarkAsReturned();
             }
 
-            loan.MarkAsReturned();
+            loan.MarkAsReturned(); // Метод у моделі Loan
+            _context.SaveChanges();
         }
 
-        public List<Loan> GetActiveLoans()
-        {
-            return _library.Loans
+        // --- ЗВІТНІСТЬ ---
+
+        public List<Loan> GetActiveLoans() {
+            return _context.Loans
+                .AsNoTracking()
+                .Include(l => l.Reader)
+                .Include(l => l.BookLoans).ThenInclude(bl => bl.Book)
                 .Where(l => l.LoanStatus == LoanStatus.Active)
                 .ToList();
         }
 
-        public List<Loan> GetOverdueLoans()
-        {
-            foreach (var loan in _library.Loans)
-            {
+        public List<Loan> GetOverdueLoans() {
+            // Оновлюємо статуси прострочених в базі перед виводом
+            var now = DateTime.Now;
+            var loansToUpdate = _context.Loans
+                .Where(l => l.LoanStatus == LoanStatus.Active && l.ExpirationDate < now)
+                .ToList();
+
+            foreach (var loan in loansToUpdate) {
                 loan.CheckIfOverdue();
             }
 
-            return _library.Loans
+            if (loansToUpdate.Any()) _context.SaveChanges();
+
+            return _context.Loans
+                .AsNoTracking()
+                .Include(l => l.Reader)
                 .Where(l => l.LoanStatus == LoanStatus.Overdue)
                 .ToList();
         }
