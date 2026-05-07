@@ -142,7 +142,7 @@ namespace Test.Services
                 .ToList();
         }
 
-        // Пошук по Id
+        // Пошук по Id ftft
         public Loan? GetById(int loanId)
         {
             return _context.Loans
@@ -152,7 +152,7 @@ namespace Test.Services
                 .FirstOrDefault(l => l.Id == loanId);
         }
 
-        // Видалення видачі
+        // Видалення видачі ufufifft
         public void RemoveLoan(int loanId)
         {
             var loan = _context.Loans
