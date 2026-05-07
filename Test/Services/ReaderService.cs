@@ -5,73 +5,93 @@ using Test.Models;
 
 namespace Test.Services
 {
-    public class ReaderService
+    internal class ReaderService
     {
-        private readonly Library _context;
+        private readonly DBContext _context;
 
-        public ReaderService(Library context)
+        public ReaderService(DBContext context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        // Додає нового читача після валідації; перевіряє унікальність CardNumber
+        // Додавання читача
         public void AddReader(Reader reader)
         {
             if (reader == null)
                 throw new ArgumentNullException(nameof(reader));
 
             if (string.IsNullOrWhiteSpace(reader.FullName))
-                throw new ArgumentException("Ім'я читача не може бути порожнім.", nameof(reader.FullName));
+                throw new ArgumentException(
+                    "Ім'я читача не може бути порожнім.",
+                    nameof(reader.FullName));
 
             if (string.IsNullOrWhiteSpace(reader.CardNumber))
-                throw new ArgumentException("Номер читацького квитка не може бути порожнім.", nameof(reader.CardNumber));
+                throw new ArgumentException(
+                    "Номер читацького квитка не може бути порожнім.",
+                    nameof(reader.CardNumber));
 
-            bool cardExists = _context.Readers.Any(r => r.CardNumber == reader.CardNumber);
-            if (cardExists)
-                throw new InvalidOperationException("Читач з таким номером картки вже існує.");
+            var cardNumber = reader.CardNumber.Trim();
+            var fullName = reader.FullName.Trim();
+
+            // Перевірка унікальності номера картки
+            var exists = _context.Readers
+                .Any(r => r.CardNumber == cardNumber);
+
+            if (exists)
+                throw new InvalidOperationException(
+                    "Читач з таким номером картки вже існує.");
+
+            reader.CardNumber = cardNumber;
+            reader.FullName = fullName;
 
             _context.Readers.Add(reader);
+
+            _context.SaveChanges();
         }
 
-        // Видаляє читача за його Id
+        // Видалення читача
         public void RemoveReader(int readerId)
         {
-            var reader = _context.Readers.FirstOrDefault(r => r.Id == readerId);
+            var reader = _context.Readers.Find(readerId);
+
             if (reader == null)
-                throw new InvalidOperationException("Читача не знайдено.");
+                throw new InvalidOperationException(
+                    "Читача не знайдено.");
+
+            // Перевірка активних або прострочених видач
+            var hasLoans = _context.Loans.Any(l =>
+                l.ReaderId == readerId &&
+                (l.LoanStatus == LoanStatus.Active ||
+                 l.LoanStatus == LoanStatus.Overdue));
+
+            if (hasLoans)
+                throw new InvalidOperationException(
+                    "Неможливо видалити читача: є активні або прострочені видачі.");
 
             _context.Readers.Remove(reader);
+
+            _context.SaveChanges();
         }
 
-        // Альтернативний метод видалення за номером картки
-        public void RemoveReaderByCardNumber(string cardNumber)
-        {
-            if (string.IsNullOrWhiteSpace(cardNumber))
-                throw new ArgumentException("Номер картки не може бути порожнім.", nameof(cardNumber));
-
-            var reader = _context.Readers.FirstOrDefault(r => r.CardNumber == cardNumber);
-            if (reader == null)
-                throw new InvalidOperationException("Читача з таким номером картки не знайдено.");
-
-            _context.Readers.Remove(reader);
-        }
-
-        // Пошук читачів за повним ім'ям (підрядок, регістронезалежно)
+        // Пошук за ім'ям
         public List<Reader> SearchByFullName(string fullName)
         {
             if (string.IsNullOrWhiteSpace(fullName))
                 return new List<Reader>();
 
+            var query = fullName.Trim().ToLower();
+
             return _context.Readers
-                .Where(r => r.FullName != null &&
-                            r.FullName.Contains(fullName, StringComparison.OrdinalIgnoreCase))
+                .Where(r =>
+                    !string.IsNullOrWhiteSpace(r.FullName) &&
+                    r.FullName.ToLower().Contains(query))
                 .ToList();
         }
 
-        // Повернути читача за Id (допоміжний метод)
+        // Отримання читача по Id
         public Reader? GetById(int readerId)
         {
-            return _context.Readers.FirstOrDefault(r => r.Id == readerId);
+            return _context.Readers.Find(readerId);
         }
     }
 }
