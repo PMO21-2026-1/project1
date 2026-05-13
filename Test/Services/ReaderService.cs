@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Test.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace Test.Services
 {
@@ -15,7 +14,6 @@ namespace Test.Services
             _context = context;
         }
 
-        // Реєстрація читача (можна перенести з LibraryService)
         public void RegisterReader(Reader reader)
         {
             if (reader == null) throw new ArgumentNullException(nameof(reader));
@@ -27,13 +25,12 @@ namespace Test.Services
             _context.SaveChanges();
         }
 
-        // Пошук читача за ID
-        public Reader GetReaderById(int id)
+        // Додано '?', щоб дозволити повернення null
+        public Reader? GetReaderById(int id)
         {
             return _context.Readers.Find(id);
         }
 
-        // Отримати список усіх зареєстрованих читачів
         public List<Reader> GetAllReaders()
         {
             return _context.Readers.ToList();

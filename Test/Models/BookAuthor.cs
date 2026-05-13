@@ -5,20 +5,41 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Test.Models {
-    public class BookAuthor {
+
+namespace Test.Models
+{
+    public class BookAuthor
+    {
         public int BookId { get; set; }
         public Book? Book { get; set; }
         public int AuthorId { get; set; }
         public Author? Author { get; set; }
 
+        // Додаємо цей порожній конструктор
+        public BookAuthor() { }
+
+        // Ваш існуючий конструктор залишається
         public BookAuthor(int bookId, int authorId)
         {
             BookId = bookId;
             AuthorId = authorId;
         }
-
     }
-
-    
 }
+//namespace Test.Models {
+//    public class BookAuthor {
+//        public int BookId { get; set; }
+//        public Book? Book { get; set; }
+//        public int AuthorId { get; set; }
+//        public Author? Author { get; set; }
+
+//        public BookAuthor(int bookId, int authorId)
+//        {
+//            BookId = bookId;
+//            AuthorId = authorId;
+//        }
+
+//    }
+
+
+//}
