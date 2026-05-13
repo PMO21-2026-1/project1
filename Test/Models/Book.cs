@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
 
 namespace Test.Models {
     public class Book {
-        public String Title { get; set; } = String.Empty;
+        [Key]
         public String ISBN { get; set; } = String.Empty;
+
+        public String Title { get; set; } = String.Empty;
         public BookStatus BookStatus { get; set; } = BookStatus.Available;
         public int BooksCount { get; set; } = 0;
         public int? YearOfPublish { get; set; } = null;

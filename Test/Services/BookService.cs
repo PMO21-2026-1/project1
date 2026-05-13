@@ -156,6 +156,17 @@ namespace Test.Services {
             }
         }
 
+        public void AddGenreToBook(string isbn, int genreId) {
+            var book = _context.Books
+                .Include(b => b.BookGenres)
+                .FirstOrDefault(b => b.ISBN == isbn);
+            var genre = _context.Genres.Find(genreId);
+            if (book != null && genre != null) {
+                book.AddGenre(genre); // Викликаємо логіку з моделі
+                _context.SaveChanges();
+            }
+        }
+
         // --- МАЛЕНЬКІ БІЗНЕС-МЕТОДИ ---
 
         public void BorrowBook(string isbn) {
