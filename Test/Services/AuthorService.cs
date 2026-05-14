@@ -37,10 +37,10 @@ namespace Test.Services
         // Допоміжний метод: отримати автора за Id
         public Author? GetById(int authorId)
         {
-            if (_library.GetType().GetProperty("Authors") == null)
+            if (_context.GetType().GetProperty("Authors") == null)
                 return null;
 
-            var authorsList = (IEnumerable<Author>)_library.GetType().GetProperty("Authors")!.GetValue(_library)!;
+            var authorsList = (IEnumerable<Author>)_context.GetType().GetProperty("Authors")!.GetValue(_context)!;
             return authorsList.FirstOrDefault(a => a.Id == authorId);
         }
     }
