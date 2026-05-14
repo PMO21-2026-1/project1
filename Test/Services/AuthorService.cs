@@ -5,82 +5,32 @@ using Test.Models;
 
 namespace Test.Services
 {
-    public class AuthorService
+    internal class AuthorService
     {
-        private readonly Library _library;
+        private readonly DBContext _context;
 
-        public AuthorService(Library library)
+        public AuthorService(DBContext context)
         {
-            _library = library ?? throw new ArgumentNullException(nameof(library));
+            _context = context;
         }
 
-        // Додає нового автора після базової валідації; перевіряє наявність дубліката за FullName
-        public void AddAuthor(Author author)
+        public void AddAuthor(string name, DateTime? birthDate = null)
         {
-            if (author == null)
-                throw new ArgumentNullException(nameof(author));
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Ім'я автора обов'язкове.");
 
-            if (string.IsNullOrWhiteSpace(author.FullName))
-                throw new ArgumentException("Ім'я автора не може бути порожнім.", nameof(author.FullName));
+            var author = new Author();
+            // Використовуємо метод моделі для встановлення даних
+            author.UpdateProfile(name, birthDate);
 
-            var name = author.FullName.Trim();
-
-            // Перевіряємо на дублікати в централізованій колекції авторів (якщо вона є)
-            if (_library.GetType().GetProperty("Authors") != null)
-            {
-                // передбачаємо, що Library має List<Author> Authors
-                var authorsProp = (IEnumerable<Author>)_library.GetType().GetProperty("Authors")!.GetValue(_library)!;
-                if (authorsProp.Any(a => string.Equals(a.FullName?.Trim(), name, StringComparison.OrdinalIgnoreCase)))
-                    throw new InvalidOperationException("Автор з таким іменем вже існує.");
-
-                // додаємо автора
-                ((List<Author>)_library.GetType().GetProperty("Authors")!.GetValue(_library)!).Add(author);
-                return;
-            }
-
-            // Якщо в цій версії Library немає Authors — намагаємося не створювати помилку,
-            // але логічно зберегти автора через зв'язки з книгами або кинути помилку.
-            throw new InvalidOperationException("Library не підтримує пряме збереження Authors в поточній версії моделі.");
+            _context.Authors.Add(author);
+            _context.SaveChanges();
         }
 
-        // Видаляє автора за Id (видаляє також зв'язки BookAuthor у книгах)
-        public void RemoveAuthor(int authorId)
+        public List<Author> GetAllAuthors()
         {
-            if (_library.GetType().GetProperty("Authors") == null)
-                throw new InvalidOperationException("Library не підтримує Authors в поточній версії моделі.");
-
-            var authorsList = (List<Author>)_library.GetType().GetProperty("Authors")!.GetValue(_library)!;
-            var author = authorsList.FirstOrDefault(a => a.Id == authorId);
-            if (author == null)
-                throw new InvalidOperationException("Автора не знайдено.");
-
-            // Видаляємо зв'язки author -> book (BookAuthor) у всіх книгах
-            foreach (var book in _library.Books)
-            {
-                var links = book.BookAuthors.Where(ba => ba.Author != null && ba.Author.Id == author.Id).ToList();
-                foreach (var l in links)
-                {
-                    book.BookAuthors.Remove(l);
-                }
-            }
-
-            authorsList.Remove(author);
-        }
-
-        // Пошук авторів за повним ім'ям (підрядок, регістронезалежно)
-        public List<Author> SearchByFullName(string fullName)
-        {
-            if (string.IsNullOrWhiteSpace(fullName))
-                return new List<Author>();
-
-            if (_library.GetType().GetProperty("Authors") == null)
-                return new List<Author>();
-
-            var authorsList = (IEnumerable<Author>)_library.GetType().GetProperty("Authors")!.GetValue(_library)!;
-
-            return authorsList
-                .Where(a => !string.IsNullOrEmpty(a.FullName) &&
-                            a.FullName.Contains(fullName, StringComparison.OrdinalIgnoreCase))
+            return _context.Authors
+                .OrderBy(a => a.FullName) // Використовуємо FullName
                 .ToList();
         }
 

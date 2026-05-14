@@ -11,87 +11,29 @@ namespace Test.Services
 
         public ReaderService(DBContext context)
         {
-            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _context = context;
         }
 
-        // Додавання читача
-        public void AddReader(Reader reader)
+        public void RegisterReader(Reader reader)
         {
-            if (reader == null)
-                throw new ArgumentNullException(nameof(reader));
+            if (reader == null) throw new ArgumentNullException(nameof(reader));
 
-            if (string.IsNullOrWhiteSpace(reader.FullName))
-                throw new ArgumentException(
-                    "Ім'я читача не може бути порожнім.",
-                    nameof(reader.FullName));
-
-            if (string.IsNullOrWhiteSpace(reader.CardNumber))
-                throw new ArgumentException(
-                    "Номер читацького квитка не може бути порожнім.",
-                    nameof(reader.CardNumber));
-
-            var cardNumber = reader.CardNumber.Trim();
-            var fullName = reader.FullName.Trim();
-
-            // Перевірка унікальності номера картки
-            var exists = _context.Readers
-                .Any(r => r.CardNumber == cardNumber);
-
-            if (exists)
-                throw new InvalidOperationException(
-                    "Читач з таким номером картки вже існує.");
-
-            reader.CardNumber = cardNumber;
-            reader.FullName = fullName;
+            if (_context.Readers.Any(r => r.CardNumber == reader.CardNumber))
+                throw new InvalidOperationException("Читач з таким номером картки вже існує.");
 
             _context.Readers.Add(reader);
-
             _context.SaveChanges();
         }
 
-        // Видалення читача
-        public void RemoveReader(int readerId)
+        // Додано '?', щоб дозволити повернення null
+        public Reader? GetReaderById(int id)
         {
-            var reader = _context.Readers.Find(readerId);
-
-            if (reader == null)
-                throw new InvalidOperationException(
-                    "Читача не знайдено.");
-
-            // Перевірка активних або прострочених видач
-            var hasLoans = _context.Loans.Any(l =>
-                l.ReaderId == readerId &&
-                (l.LoanStatus == LoanStatus.Active ||
-                 l.LoanStatus == LoanStatus.Overdue));
-
-            if (hasLoans)
-                throw new InvalidOperationException(
-                    "Неможливо видалити читача: є активні або прострочені видачі.");
-
-            _context.Readers.Remove(reader);
-
-            _context.SaveChanges();
+            return _context.Readers.Find(id);
         }
 
-        // Пошук за ім'ям
-        public List<Reader> SearchByFullName(string fullName)
+        public List<Reader> GetAllReaders()
         {
-            if (string.IsNullOrWhiteSpace(fullName))
-                return new List<Reader>();
-
-            var query = fullName.Trim().ToLower();
-
-            return _context.Readers
-                .Where(r =>
-                    !string.IsNullOrWhiteSpace(r.FullName) &&
-                    r.FullName.ToLower().Contains(query))
-                .ToList();
-        }
-
-        // Отримання читача по Id
-        public Reader? GetById(int readerId)
-        {
-            return _context.Readers.Find(readerId);
+            return _context.Readers.ToList();
         }
     }
 }

@@ -476,3 +476,5 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 
+/Test/Models/BookGenre.cs
+/Test/Models/BookLoan.cs
