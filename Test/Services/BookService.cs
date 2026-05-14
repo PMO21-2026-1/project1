@@ -108,6 +108,9 @@ namespace Test.Services
 
             if (!string.IsNullOrWhiteSpace(isbn) && (isbn.Trim().Length < 10 || isbn.Trim().Length > 13))
                 throw new ArgumentException("ISBN повинен містити від 10 до 13 символів.");
+
+            if (!string.IsNullOrWhiteSpace(isbn) && !isbn.Trim().All(char.IsDigit))
+                throw new ArgumentException("ISBN повинен містити тільки цифри.");
             //Валідація року(не раніше 1450 року — винайдення друку)
             if (year.HasValue && (year < 1450 || year > DateTime.Now.Year))
                 throw new ArgumentException("Вказано некоректний рік видання (допустимо з 1450 по поточний).");
