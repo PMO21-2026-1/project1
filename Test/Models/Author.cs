@@ -4,8 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Test.Models {
-    public class Author {
+namespace Test.Models
+{
+    public class Author
+    {
         public int Id { get; set; }
         public String FullName { get; private set; } = String.Empty;
         public DateTime? BirthDate { get; private set; }
@@ -14,7 +16,8 @@ namespace Test.Models {
         public List<BookAuthor> BookAuthors { get; set; } = new List<BookAuthor>();
 
         // Оновлення профілю з валідацією (no-op якщо без змін)
-        public void UpdateProfile(string name, DateTime? birth) {
+        public void UpdateProfile(string name, DateTime? birth)
+        {
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentException("Ім'я автора не може бути порожнім.", nameof(name));
 
@@ -31,7 +34,8 @@ namespace Test.Models {
         }
 
         // Додає книгу до автора, синхронізує дві сторони зв'язку та запобігає дублікатам
-        public void AddBook(Book book) {
+        public void AddBook(Book book)
+        {
             if (book == null) throw new ArgumentNullException(nameof(book));
 
             // Якщо на боці книги вже є зв'язок до цього автора — повторно використовуємо існуючий об'єкт зв'язку
@@ -40,7 +44,8 @@ namespace Test.Models {
                 (ba.Author != null && this.Id != 0 && ba.Author.Id == this.Id)
             );
 
-            if (existingOnBook != null) {
+            if (existingOnBook != null)
+            {
                 if (!BookAuthors.Any(ba => ReferenceEquals(ba, existingOnBook)))
                     BookAuthors.Add(existingOnBook);
                 return;
@@ -56,7 +61,8 @@ namespace Test.Models {
         }
 
         // Видаляє зв'язок книги з автором, синхронізує дві сторони
-        public void RemoveBook(Book book) {
+        public void RemoveBook(Book book)
+        {
             if (book == null) throw new ArgumentNullException(nameof(book));
 
             var existingOnBook = book.BookAuthors.FirstOrDefault(ba =>
@@ -64,7 +70,8 @@ namespace Test.Models {
                 (ba.Author != null && this.Id != 0 && ba.Author.Id == this.Id)
             );
 
-            if (existingOnBook != null) {
+            if (existingOnBook != null)
+            {
                 if (BookAuthors.Contains(existingOnBook))
                     BookAuthors.Remove(existingOnBook);
                 book.BookAuthors.Remove(existingOnBook);
@@ -72,14 +79,16 @@ namespace Test.Models {
             }
 
             var links = BookAuthors.Where(ba => ReferenceEquals(ba.Book, book)).ToList();
-            foreach (var l in links) {
+            foreach (var l in links)
+            {
                 BookAuthors.Remove(l);
                 if (book.BookAuthors.Contains(l))
                     book.BookAuthors.Remove(l);
-                else {
+                else
+                {
                     var other = book.BookAuthors.FirstOrDefault(ba =>
                         ReferenceEquals(ba.Author, this) ||
-                        (ba.Author != null  && this.Id != 0 && ba.Author.Id == this.Id)
+                        (ba.Author != null && this.Id != 0 && ba.Author.Id == this.Id)
                     );
                     if (other != null) book.BookAuthors.Remove(other);
                 }
@@ -87,23 +96,28 @@ namespace Test.Models {
         }
 
         // Допоміжні запити
-        public IEnumerable<Book> GetBooks() {
+        public IEnumerable<Book> GetBooks()
+        {
             return BookAuthors.Select(ba => ba.Book).Where(b => b != null).Select(b => b!);
         }
 
-        public IEnumerable<Book> GetAvailableBooks() {
+        public IEnumerable<Book> GetAvailableBooks()
+        {
             return GetBooks().Where(b => b.IsAvailableForLoan());
         }
 
-        public bool HasBook(Book book) {
+        public bool HasBook(Book book)
+        {
             if (book == null) return false;
             return BookAuthors.Any(ba => ReferenceEquals(ba.Book, book)) ||
                    book.BookAuthors.Any(ba => ReferenceEquals(ba.Author, this));
         }
 
         // Вік автора (null якщо невідомо)
-        public int? Age {
-            get {
+        public int? Age
+        {
+            get
+            {
                 if (!BirthDate.HasValue) return null;
                 var today = DateTime.UtcNow.Date;
                 var age = today.Year - BirthDate.Value.Year;

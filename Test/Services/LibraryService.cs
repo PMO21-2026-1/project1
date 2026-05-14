@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 using Test.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace Test.Services {
-    internal class LibraryService {
+namespace Test.Services
+{
+    internal class LibraryService
+    {
 
         private readonly DBContext _context;
 
@@ -16,7 +18,8 @@ namespace Test.Services {
             _context = context;
         }
 
-        public void AddBook(Book book) {
+        public void AddBook(Book book)
+        {
             if (book == null) throw new ArgumentNullException(nameof(book));
 
             // Перевірка бізнес-правил
@@ -31,7 +34,8 @@ namespace Test.Services {
             _context.SaveChanges();
         }
 
-        public List<Book> SearchByTitle(string title) {
+        public List<Book> SearchByTitle(string title)
+        {
             if (string.IsNullOrWhiteSpace(title)) return new List<Book>();
 
             return _context.Books
@@ -44,7 +48,8 @@ namespace Test.Services {
 
         // --- РОБОТА З ЧИТАЧАМИ ---
 
-        public void RegisterReader(Reader reader) {
+        public void RegisterReader(Reader reader)
+        {
             if (reader == null) throw new ArgumentNullException(nameof(reader));
 
             if (_context.Readers.Any(r => r.CardNumber == reader.CardNumber))
@@ -56,7 +61,8 @@ namespace Test.Services {
 
         // --- ВИДАЧА ТА ПОВЕРНЕННЯ (Найважливіша логіка) ---
 
-        public Loan IssueBook(int readerId, string isbn) {
+        public Loan IssueBook(int readerId, string isbn)
+        {
             // 1. Шукаємо читача
             var reader = _context.Readers.Find(readerId);
             if (reader == null) throw new InvalidOperationException("Читача не знайдено.");
@@ -72,7 +78,8 @@ namespace Test.Services {
             book.MarkAsBorrowed();
 
             // 4. Створюємо запис видачі
-            var loan = new Loan {
+            var loan = new Loan
+            {
                 ReaderId = reader.Id,
                 IssueDate = DateTime.Now,
                 PlannedReturnDate = DateTime.Now.AddDays(14),
@@ -81,7 +88,8 @@ namespace Test.Services {
             };
 
             // Зв'язуємо книгу з видачею через проміжну таблицю
-            loan.BookLoans.Add(new BookLoan {
+            loan.BookLoans.Add(new BookLoan
+            {
                 Book = book,
                 Loan = loan
             });
@@ -92,7 +100,8 @@ namespace Test.Services {
             return loan;
         }
 
-        public void ReturnBook(int loanId) {
+        public void ReturnBook(int loanId)
+        {
             // Завантажуємо видачу разом із книгами
             var loan = _context.Loans
                 .Include(l => l.BookLoans)
@@ -103,7 +112,8 @@ namespace Test.Services {
             if (loan.LoanStatus == LoanStatus.Returned) throw new InvalidOperationException("Вже повернуто.");
 
             // Повертаємо всі книги у цій видачі
-            foreach (var bookLoan in loan.BookLoans) {
+            foreach (var bookLoan in loan.BookLoans)
+            {
                 bookLoan.Book?.MarkAsReturned();
             }
 
@@ -113,7 +123,8 @@ namespace Test.Services {
 
         // --- ЗВІТНІСТЬ ---
 
-        public List<Loan> GetActiveLoans() {
+        public List<Loan> GetActiveLoans()
+        {
             return _context.Loans
                 .AsNoTracking()
                 .Include(l => l.Reader)
@@ -122,14 +133,16 @@ namespace Test.Services {
                 .ToList();
         }
 
-        public List<Loan> GetOverdueLoans() {
+        public List<Loan> GetOverdueLoans()
+        {
             // Оновлюємо статуси прострочених в базі перед виводом
             var now = DateTime.Now;
             var loansToUpdate = _context.Loans
                 .Where(l => l.LoanStatus == LoanStatus.Active && l.ExpirationDate < now)
                 .ToList();
 
-            foreach (var loan in loansToUpdate) {
+            foreach (var loan in loansToUpdate)
+            {
                 loan.CheckIfOverdue();
             }
 

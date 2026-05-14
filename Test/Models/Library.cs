@@ -5,9 +5,11 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Test.Models {
+namespace Test.Models
+{
 
-    public class Library {
+    public class Library
+    {
         public int Id { get; set; }
         public String? Address { get; set; }
         public String? Name { get; set; }
@@ -26,14 +28,17 @@ namespace Test.Models {
             Books.Where(b => b.BookAuthors.Any(ba => ba.Author.FullName.Contains(authorName))).ToList();
 
         // Історія 7: Бібліотекар - Видаляти книги
-        public void RemoveBook(string isbn) {
+        public void RemoveBook(string isbn)
+        {
             var book = Books.FirstOrDefault(b => b.ISBN == isbn);
             if (book != null) Books.Remove(book);
         }
 
         // Історія 10: Бібліотекар - Видавати книги
-        public void IssueBooks(Reader reader, List<Book> books) {
-            var loan = new Loan {
+        public void IssueBooks(Reader reader, List<Book> books)
+        {
+            var loan = new Loan
+            {
                 ReaderId = reader.Id,
                 Reader = reader,
                 PlannedReturnDate = DateTime.Now.AddDays(14)

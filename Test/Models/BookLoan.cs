@@ -5,8 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
 
-namespace Test.Models {
-    public class BookLoan {
+namespace Test.Models
+{
+    public class BookLoan
+    {
         [Key]
         public int BookId { get; set; }
         public Book? Book { get; set; }
