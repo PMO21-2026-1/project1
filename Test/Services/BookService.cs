@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Microsoft.EntityFrameworkCore;
 using Test.Models;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 
 namespace Test.Services
 {
@@ -108,6 +103,15 @@ namespace Test.Services
 
         public Book AddBook(string title, string isbn, int libraryId, int count = 1, int? year = null)
         {
+            if (string.IsNullOrWhiteSpace(title))
+                throw new ArgumentException("Назва книги не може бути порожньою.");
+
+            if (!string.IsNullOrWhiteSpace(isbn) && (isbn.Trim().Length < 10 || isbn.Trim().Length > 13))
+                throw new ArgumentException("ISBN повинен містити від 10 до 13 символів.");
+            //Валідація року(не раніше 1450 року — винайдення друку)
+            if (year.HasValue && (year < 1450 || year > DateTime.Now.Year))
+                throw new ArgumentException("Вказано некоректний рік видання (допустимо з 1450 по поточний).");
+
             // Швидка перевірка на дублікат
             if (_context.Books.Any(b => b.ISBN == isbn))
                 throw new InvalidOperationException($"Книга з ISBN '{isbn}' вже існує.");
