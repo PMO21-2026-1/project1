@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.EntityFrameworkCore;
 using Test.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace Test.Services
 {
@@ -25,6 +20,14 @@ namespace Test.Services
             // Перевірка бізнес-правил
             if (string.IsNullOrWhiteSpace(book.Title)) throw new ArgumentException("Назва не може бути порожньою.");
             if (string.IsNullOrWhiteSpace(book.ISBN)) throw new ArgumentException("ISBN не може бути порожнім.");
+
+            // Валідація року видання — не дозволяємо рік у майбутньому
+            if (book.YearOfPublish.HasValue)
+            {
+                int maxYear = DateTime.UtcNow.Year;
+                if (book.YearOfPublish.Value > maxYear)
+                    throw new ArgumentException($"Рік видання не може бути більшим за {maxYear}.", nameof(book.YearOfPublish));
+            }
 
             // Перевірка на дублікат у базі
             if (_context.Books.Any(b => b.ISBN == book.ISBN))
