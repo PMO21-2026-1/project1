@@ -1,5 +1,4 @@
-﻿using System;
-using Test.Models;
+﻿using Test.Models;
 using Test.Services;
 
 namespace Test.UI
@@ -348,7 +347,9 @@ namespace Test.UI
             var genres = b.BookGenres.Count > 0
                 ? string.Join(", ", b.BookGenres.Select(bg => bg.Genre?.GenreName ?? "—"))
                 : "—";
-            Console.WriteLine($"  [{b.ISBN}] {b.Title,-30} | {authors,-20} | {b.BookStatus,-10} | прим.: {b.BooksCount} | {genres}");
+
+            string isbnFormatted = $"[{b.ISBN}]";
+            Console.WriteLine($"  {isbnFormatted,-18} | {b.Title,-30} | {authors,-20} | {b.BookStatus,-10} | прим.: {b.BooksCount,-3} | {genres}");
         }
 
         private static void PrintLoan(Models.Loan l)
