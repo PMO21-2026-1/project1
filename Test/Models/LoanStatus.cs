@@ -4,8 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Test.Models {
-    public enum LoanStatus {
+namespace Test.Models
+{
+    public enum LoanStatus
+    {
         Active,
         Returned,
         Overdue,

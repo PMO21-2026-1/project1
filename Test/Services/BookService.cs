@@ -1,22 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Microsoft.EntityFrameworkCore;
 using Test.Models;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 
-namespace Test.Services {
-    internal class BookService {
+namespace Test.Services
+{
+    internal class BookService
+    {
 
         private readonly DBContext _context;
 
-        public BookService(DBContext context) {
+        public BookService(DBContext context)
+        {
             _context = context;
         }
 
         // Історія 1-2: Пошук книг
-        public IEnumerable<Book> GetAllBooks() {
+        public IEnumerable<Book> GetAllBooks()
+        {
             return _context.Books
                 .AsNoTracking()
                 .AsSplitQuery()
@@ -28,7 +27,8 @@ namespace Test.Services {
                 .ToList();
         }
 
-        public Book? GetBookByIsbn(string isbn) {
+        public Book? GetBookByIsbn(string isbn)
+        {
             if (string.IsNullOrWhiteSpace(isbn))
                 throw new ArgumentException("ISBN не може бути порожнім.", nameof(isbn));
 
@@ -39,7 +39,8 @@ namespace Test.Services {
             .FirstOrDefault(b => b.ISBN == isbn);
         }
 
-        public IEnumerable<Book> SearchByTitle(string title) {
+        public IEnumerable<Book> SearchByTitle(string title)
+        {
             if (string.IsNullOrWhiteSpace(title))
                 return Enumerable.Empty<Book>();
 
@@ -52,7 +53,8 @@ namespace Test.Services {
                 .ToList();
         }
 
-        public IEnumerable<Book> SearchByAuthor(string authorName) {
+        public IEnumerable<Book> SearchByAuthor(string authorName)
+        {
             if (string.IsNullOrWhiteSpace(authorName))
                 return Enumerable.Empty<Book>();
 
@@ -66,11 +68,12 @@ namespace Test.Services {
                 .ToList();
         }
 
-        public IEnumerable<Book> SearchByGenre(string genreName) {
+        public IEnumerable<Book> SearchByGenre(string genreName)
+        {
             if (string.IsNullOrWhiteSpace(genreName)) return Enumerable.Empty<Book>();
 
             return _context.Books
-                .AsNoTracking() 
+                .AsNoTracking()
                 .AsSplitQuery()
                 .Include(b => b.BookGenres).ThenInclude(bg => bg.Genre)
                 .Where(b => b.BookGenres.Any(bg => bg.Genre != null &&
@@ -78,7 +81,8 @@ namespace Test.Services {
                 .ToList();
         }
 
-        public IEnumerable<Book> GetAvailableBooks() {
+        public IEnumerable<Book> GetAvailableBooks()
+        {
             return _context.Books
                 .AsNoTracking()
                 .Include(b => b.BookAuthors).ThenInclude(ba => ba.Author)
@@ -86,7 +90,8 @@ namespace Test.Services {
                 .ToList();
         }
 
-        public IEnumerable<Book> GetBooksByLibrary(int libraryId) {
+        public IEnumerable<Book> GetBooksByLibrary(int libraryId)
+        {
             return _context.Books
                 .AsNoTracking()
                 .Include(b => b.BookAuthors).ThenInclude(ba => ba.Author)
@@ -96,7 +101,20 @@ namespace Test.Services {
 
         // --- МЕТОДИ МОДИФІКАЦІЇ (З трекінгом та SaveChanges) ---
 
-        public Book AddBook(string title, string isbn, int libraryId, int count = 1, int? year = null) {
+        public Book AddBook(string title, string isbn, int libraryId, int count = 1, int? year = null)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                throw new ArgumentException("Назва книги не може бути порожньою.");
+
+            if (!string.IsNullOrWhiteSpace(isbn) && (isbn.Trim().Length < 10 || isbn.Trim().Length > 13))
+                throw new ArgumentException("ISBN повинен містити від 10 до 13 символів.");
+
+            if (!string.IsNullOrWhiteSpace(isbn) && !isbn.Trim().All(char.IsDigit))
+                throw new ArgumentException("ISBN повинен містити тільки цифри.");
+            //Валідація року(не раніше 1450 року — винайдення друку)
+            if (year.HasValue && (year < 1450 || year > DateTime.Now.Year))
+                throw new ArgumentException("Вказано некоректний рік видання (допустимо з 1450 по поточний).");
+
             // Швидка перевірка на дублікат
             if (_context.Books.Any(b => b.ISBN == isbn))
                 throw new InvalidOperationException($"Книга з ISBN '{isbn}' вже існує.");
@@ -105,7 +123,8 @@ namespace Test.Services {
             if (!_context.Libraries.Any(l => l.Id == libraryId))
                 throw new InvalidOperationException("Бібліотеку не знайдено.");
 
-            var book = new Book {
+            var book = new Book
+            {
                 Title = title.Trim(),
                 ISBN = isbn.Trim(),
                 LibraryId = libraryId,
@@ -119,7 +138,8 @@ namespace Test.Services {
             return book;
         }
 
-        public void UpdateBook(string isbn, string title, int? year, int count) {
+        public void UpdateBook(string isbn, string title, int? year, int count)
+        {
             // Тут AsNoTracking НЕ МОЖНА, бо ми міняємо дані
             var book = _context.Books.FirstOrDefault(b => b.ISBN == isbn);
             if (book == null) throw new KeyNotFoundException("Книгу не знайдено.");
@@ -128,7 +148,8 @@ namespace Test.Services {
             _context.SaveChanges();
         }
 
-        public void DeleteBook(string isbn) {
+        public void DeleteBook(string isbn)
+        {
             // Завантажуємо книгу разом із активними позиками для перевірки
             var book = _context.Books
                 .Include(b => b.Loans.Where(l => l.LoanStatus == LoanStatus.Active))
@@ -143,25 +164,29 @@ namespace Test.Services {
             _context.SaveChanges();
         }
 
-        public void AddAuthorToBook(string isbn, int authorId) {
+        public void AddAuthorToBook(string isbn, int authorId)
+        {
             var book = _context.Books
                 .Include(b => b.BookAuthors)
                 .FirstOrDefault(b => b.ISBN == isbn);
 
             var author = _context.Authors.Find(authorId);
 
-            if (book != null && author != null) {
+            if (book != null && author != null)
+            {
                 book.AddAuthor(author); // Викликаємо логіку з моделі
                 _context.SaveChanges();
             }
         }
 
-        public void AddGenreToBook(string isbn, int genreId) {
+        public void AddGenreToBook(string isbn, int genreId)
+        {
             var book = _context.Books
                 .Include(b => b.BookGenres)
                 .FirstOrDefault(b => b.ISBN == isbn);
             var genre = _context.Genres.Find(genreId);
-            if (book != null && genre != null) {
+            if (book != null && genre != null)
+            {
                 book.AddGenre(genre); // Викликаємо логіку з моделі
                 _context.SaveChanges();
             }
@@ -169,17 +194,21 @@ namespace Test.Services {
 
         // --- МАЛЕНЬКІ БІЗНЕС-МЕТОДИ ---
 
-        public void BorrowBook(string isbn) {
+        public void BorrowBook(string isbn)
+        {
             var book = _context.Books.FirstOrDefault(b => b.ISBN == isbn);
-            if (book != null) {
+            if (book != null)
+            {
                 book.MarkAsBorrowed();
                 _context.SaveChanges();
             }
         }
 
-        public void ReturnBook(string isbn) {
+        public void ReturnBook(string isbn)
+        {
             var book = _context.Books.FirstOrDefault(b => b.ISBN == isbn);
-            if (book != null) {
+            if (book != null)
+            {
                 book.MarkAsReturned();
                 _context.SaveChanges();
             }

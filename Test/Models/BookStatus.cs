@@ -21,6 +21,6 @@ public enum BookStatus
     [Display(Name = "Втрачена")]
     Lost,
 
-    [Display(Name = "На реставрації")] 
+    [Display(Name = "На реставрації")]
     UnderRestoration
 }

@@ -1,6 +1,3 @@
-п»їusing System;
-using System.Collections.Generic;
-using System.Linq;
 using Test.Models;
 
 namespace Test.Services
@@ -17,10 +14,10 @@ namespace Test.Services
         public void AddAuthor(string name, DateTime? birthDate = null)
         {
             if (string.IsNullOrWhiteSpace(name))
-                throw new ArgumentException("Р†Рј'СЏ Р°РІС‚РѕСЂР° РѕР±РѕРІ'СЏР·РєРѕРІРµ.");
+                throw new ArgumentException("Ім'я автора обов'язкове.");
 
             var author = new Author();
-            // Р’РёРєРѕСЂРёСЃС‚РѕРІСѓС”РјРѕ РјРµС‚РѕРґ РјРѕРґРµР»С– РґР»СЏ РІСЃС‚Р°РЅРѕРІР»РµРЅРЅСЏ РґР°РЅРёС…
+            // Використовуємо метод моделі для встановлення даних
             author.UpdateProfile(name, birthDate);
 
             _context.Authors.Add(author);
@@ -30,8 +27,18 @@ namespace Test.Services
         public List<Author> GetAllAuthors()
         {
             return _context.Authors
-                .OrderBy(a => a.FullName) // Р’РёРєРѕСЂРёСЃС‚РѕРІСѓС”РјРѕ FullName
+                .OrderBy(a => a.FullName) // Використовуємо FullName
                 .ToList();
+        }
+
+        // Допоміжний метод: отримати автора за Id
+        public Author? GetById(int authorId)
+        {
+            if (_context.GetType().GetProperty("Authors") == null)
+                return null;
+
+            var authorsList = (IEnumerable<Author>)_context.GetType().GetProperty("Authors")!.GetValue(_context)!;
+            return authorsList.FirstOrDefault(a => a.Id == authorId);
         }
     }
 }
